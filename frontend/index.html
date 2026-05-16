@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<script>
+tailwind.config = {
+    theme: {
+        extend: {
+            colors: {
+                primary: '#004B8D',
+                secondary: '#F6921E'
+            }
+        }
+    }
+}
+</script>
+
+<title>BuscaVagas</title>
+</head>
+
+<body class="bg-gray-100">
+
+
+<header class="bg-primary text-white p-4 fixed top-0 w-full z-10 shadow">
+    <h1 class="text-lg font-bold text-center">BuscaVagas</h1>
+</header>
+
+
+<main class="pt-20 pb-20 px-4 max-w-md mx-auto">
+
+
+    <section id="home">
+        <div class="bg-white p-4 rounded-xl shadow mb-4">
+
+            <input 
+                type="text" 
+                id="busca"
+                placeholder="Buscar oportunidades..."
+                class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary outline-none mb-3"
+            >
+
+            <button 
+                onclick="buscar()" 
+                class="w-full bg-primary text-white p-2 rounded-lg hover:bg-secondary transition">
+                Buscar
+            </button>
+        </div>
+
+       
+        <div class="mb-4">
+            <h2 class="text-lg font-bold text-gray-700 mb-2">Opções Populares</h2>
+
+            <div class="flex gap-2 flex-wrap">
+                <button onclick="buscar('IA')" class="chip">IA</button>
+                <button onclick="buscar('Python')" class="chip">Python</button>
+                <button onclick="buscar('Backend')" class="chip">Backend</button>
+                <button onclick="buscar('Sistemas')" class="chip">Sistemas</button>
+            </div>
+        </div>
+
+        
+        <div id="loading" class="hidden text-center my-6">
+            <div class="loader mx-auto"></div>
+            <p class="text-gray-500 mt-2">Buscando...</p>
+        </div>
+
+        
+        <div id="resultados" class="space-y-3"></div>
+    </section>
+
+    
+    <section id="favoritos" class="hidden text-center text-gray-500">
+        <p class="mt-10">⭐ Seus favoritos aparecerão aqui</p>
+    </section>
+
+    
+<section id="perfil" class="hidden">
+
+    <div class="bg-white rounded-xl shadow p-6 space-y-4">
+
+        
+        <div class="text-center">
+            <div class="w-24 h-24 mx-auto rounded-full bg-gray-200 flex items-center justify-center text-3xl mb-2">
+                👤
+            </div>
+        </div>
+
+        
+        <input 
+            id="nomePerfil"
+            type="text"
+            placeholder="Nome completo"
+            class="w-full p-2 border rounded-lg"
+        >
+
+        
+        <input 
+            id="nascimentoPerfil"
+            type="date"
+            class="w-full p-2 border rounded-lg"
+        >
+
+        
+        <input 
+            id="enderecoPerfil"
+            type="text"
+            placeholder="Endereço"
+            class="w-full p-2 border rounded-lg"
+        >
+
+        
+        <input 
+            id="contatoPerfil"
+            type="text"
+            placeholder="Telefone ou e-mail"
+            class="w-full p-2 border rounded-lg"
+        >
+
+        
+        <input 
+            id="interessesPerfil"
+            type="text"
+            placeholder="Interesses (ex: IA, Backend, Dados...)"
+            class="w-full p-2 border rounded-lg"
+        >
+
+        
+        <textarea 
+            id="bioPerfil"
+            placeholder="Fale sobre você..."
+            class="w-full p-2 border rounded-lg resize-none"
+        ></textarea>
+
+        
+        <button 
+            onclick="salvarPerfil()"
+            class="w-full bg-primary text-white p-2 rounded-lg hover:bg-secondary transition">
+            Salvar
+        </button>
+
+    </div>
+
+</section>
+
+</main>
+
+
+<nav class="fixed bottom-0 w-full bg-white border-t flex justify-around py-2 shadow-inner">
+
+    <button onclick="trocarTela('home')" class="nav-btn text-primary">
+        🏠<br><span class="text-xs">Home</span>
+    </button>
+
+    <button onclick="trocarTela('favoritos')" class="nav-btn text-gray-400">
+        ⭐<br><span class="text-xs">Favoritos</span>
+    </button>
+
+    <button onclick="trocarTela('perfil')" class="nav-btn text-gray-400">
+        👤<br><span class="text-xs">Perfil</span>
+    </button>
+
+</nav>
+
+<script>
+
+    function getFavoritos() {
+    return JSON.parse(localStorage.getItem("favoritos")) || [];
+}
+
+    function salvarFavoritos(lista) {
+    localStorage.setItem("favoritos", JSON.stringify(lista));
+}
+
+    function toggleFavorito(item) {
+    let favoritos = getFavoritos();
+
+    const existe = favoritos.find(fav => fav.id === item.id);
+
+    if (existe) {
+        favoritos = favoritos.filter(fav => fav.id !== item.id);
+        mostrarToast("Removido dos favoritos");
+    } else {
+        favoritos.push(item);
+        mostrarToast("Adicionado aos favoritos");
+    }
+
+    salvarFavoritos(favoritos);
+
+    buscar();
+    carregarFavoritos(); // 👈 importante
+}
+
+    function ehFavorito(id) {
+    return getFavoritos().some(fav => fav.id === id);
+}
+    
+    function carregarFavoritos() {
+    const favoritos = getFavoritos();
+    const div = document.getElementById("favoritos");
+
+    if (favoritos.length === 0) {
+        div.innerHTML = `<p class="mt-10 text-gray-400">Nenhum favorito ainda ⭐</p>`;
+        return;
+    }
+
+    div.innerHTML = favoritos.map(item => `
+        <div class="fade-in p-4 bg-white rounded-xl shadow border-l-4 border-secondary">
+
+            <div class="flex justify-between">
+                <p class="font-bold text-primary">${item.titulo}</p>
+
+                <button onclick='toggleFavorito(${JSON.stringify(item)})'
+                    class="text-red-500 hover:scale-110 transition"
+                    title="Remover dos favoritos">
+                    ❌
+                </button>
+            </div>
+
+            <div class="flex justify-between mt-2">
+                <span class="text-sm text-gray-500">${item.tipo}</span>
+                <span class="text-xs bg-secondary text-white px-2 py-1 rounded-full">
+                    ${item.tag}
+                </span>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function salvarPerfil() {
+    const perfil = {
+        nome: document.getElementById("nomePerfil").value,
+        bio: document.getElementById("bioPerfil").value,
+        nascimento: document.getElementById("nascimentoPerfil").value,
+        endereco: document.getElementById("enderecoPerfil").value,
+        contato: document.getElementById("contatoPerfil").value,
+        interesses: document.getElementById("interessesPerfil").value
+    };
+
+    await fetch("http://127.0.0.1:8000/perfil", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(perfil)
+    });
+    mostrarToast("Perfil atualizado com sucesso!");
+}
+
+async function carregarPerfil() {
+    const response = await fetch("http://127.0.0.1:8000/perfil");
+    const perfil = await response.json();
+
+    document.getElementById("nomePerfil").value = perfil.nome || "";
+    document.getElementById("bioPerfil").value = perfil.bio || "";
+    document.getElementById("nascimentoPerfil").value = perfil.nascimento || "";
+    document.getElementById("enderecoPerfil").value = perfil.endereco || "";
+    document.getElementById("contatoPerfil").value = perfil.contato || "";
+    document.getElementById("interessesPerfil").value = perfil.interesses || "";
+}
+
+async function buscar(filtroBotao = null) {
+    const termo = filtroBotao || document.getElementById('busca').value;
+
+    const loading = document.getElementById('loading');
+    const div = document.getElementById('resultados');
+
+    div.innerHTML = "";
+    loading.classList.remove("hidden");
+
+    // Delay proposital
+    await new Promise(resolve => setTimeout(resolve, 700));
+
+    try {
+        const response = await fetch(`http://127.0.0.1:8000/oportunidades?filtro=${termo}`);
+        const dados = await response.json();
+
+        loading.classList.add("hidden");
+
+        if (dados.length === 0) {
+            div.innerHTML = `<p class="text-center text-gray-400 fade-in">Nenhum resultado 😕</p>`;
+            return;
+        }
+
+        div.innerHTML = dados.map(item => `
+    <div class="fade-in p-4 bg-white rounded-xl shadow border-l-4 border-primary 
+                transform transition hover:scale-105">
+
+        <div class="flex justify-between items-start">
+            <p class="font-bold text-primary">${item.titulo}</p>
+
+            <button onclick='toggleFavorito(${JSON.stringify(item)})'>
+                ${ehFavorito(item.id) ? "⭐" : "☆"}
+            </button>
+        </div>
+
+        <div class="flex justify-between mt-2">
+            <span class="text-sm text-gray-500">${item.tipo}</span>
+            <span class="text-xs bg-secondary text-white px-2 py-1 rounded-full">
+                ${item.tag}
+            </span>
+        </div>
+    </div>
+`).join('');
+
+    } catch (error) {
+        loading.classList.add("hidden");
+        div.innerHTML = `<p class="text-red-500">Erro ao conectar com a API</p>`;
+    }
+}
+
+    function trocarTela(tela) {
+    document.querySelectorAll("main section").forEach(sec => sec.classList.add("hidden"));
+    document.getElementById(tela).classList.remove("hidden");
+
+    document.querySelectorAll(".nav-btn").forEach(btn => {
+        btn.classList.remove("text-primary");
+        btn.classList.add("text-gray-400");
+    });
+
+    event.currentTarget.classList.add("text-primary");
+
+    if (tela === "favoritos") {
+        carregarFavoritos();
+    }
+
+    if (tela === "perfil") {
+        carregarPerfil();
+    }
+}
+
+    function mostrarToast(mensagem) {
+    const toast = document.getElementById("toast");
+
+    toast.textContent = mensagem;
+    toast.classList.remove("opacity-0");
+    toast.classList.add("opacity-100");
+
+    setTimeout(() => {
+        toast.classList.remove("opacity-100");
+        toast.classList.add("opacity-0");
+    }, 2500);
+    }
+</script>
+
+<style>
+.loader {
+    border: 4px solid #eee;
+    border-top: 4px solid #004B8D;
+    border-radius: 50%;
+    width: 35px;
+    height: 35px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    100% { transform: rotate(360deg); }
+}
+
+.fade-in {
+    animation: fadeIn 0.4s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.chip {
+    background: white;
+    border: 1px solid #ddd;
+    padding: 6px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.chip:hover {
+    background: #F6921E;
+    color: white;
+}
+</style>
+    <div id="toast" 
+     class="fixed bottom-24 left-1/2 transform -translate-x-1/2 
+            bg-primary text-white px-4 py-2 rounded-lg shadow-lg 
+            opacity-0 pointer-events-none transition duration-300">
+    </div>
+</body>
+</html>
